@@ -78,6 +78,30 @@
     .team { display: grid; gap: 16px; }
     .member { display: grid; gap: 8px; }
     .role { color: var(--accent-2); font-weight: 600; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .stat {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      background: rgba(255,255,255,.03);
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.7rem;
+      line-height: 1.1;
+      font-weight: 800;
+      color: white;
+    }
+    .stat-label {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
     footer { margin-top: 40px; color: var(--muted); font-size: 14px; }
   </style>
 </head>
@@ -147,10 +171,108 @@
       </div>
     </section>
 
+    <section class="card">
+      <h2>Visitor stats</h2>
+      <div class="stats" aria-live="polite">
+        <div class="stat">
+          <span class="stat-value" id="total-visits">...</span>
+          <span class="stat-label">Total page visits</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="visitor-country">...</span>
+          <span class="stat-label">Current visitor country</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="country-visits">...</span>
+          <span class="stat-label">Visits from this country</span>
+        </div>
+      </div>
+    </section>
+
     <footer>
       BAZTER PRO · Rivne, Ukraine · <a href="https://bazter.pro/en/location/">Location</a> ·
       <a href="https://bazter.pro/faq/">FAQ</a>
     </footer>
   </div>
+  <script>
+    (function () {
+      var namespace = 'bazterpro-portfolio';
+      var counterBase = 'https://api.counterapi.dev/v1/' + namespace + '/';
+      var totalVisits = document.getElementById('total-visits');
+      var visitorCountry = document.getElementById('visitor-country');
+      var countryVisits = document.getElementById('country-visits');
+
+      function setText(element, value) {
+        element.textContent = value || 'N/A';
+      }
+
+      function getCount(counterName) {
+        return fetch(counterBase + encodeURIComponent(counterName) + '/up', { cache: 'no-store' })
+          .then(function (response) {
+            if (!response.ok) throw new Error('Counter API failed');
+            return response.json();
+          })
+          .then(function (data) {
+            return data.count;
+          });
+      }
+
+      getCount('page-views')
+        .then(function (count) {
+          setText(totalVisits, count.toLocaleString('en-US'));
+        })
+        .catch(function () {
+          setText(totalVisits, 'N/A');
+        });
+
+      function getVisitorCountry() {
+        return fetch('https://geolocation-db.com/json/', { cache: 'no-store' })
+          .then(function (response) {
+            if (!response.ok) throw new Error('Geo DB failed');
+            return response.json();
+          })
+          .then(function (geo) {
+            return {
+              code: geo.country_code,
+              name: geo.country_name
+            };
+          })
+          .catch(function () {
+            return fetch('https://api.country.is/', { cache: 'no-store' })
+              .then(function (response) {
+                if (!response.ok) throw new Error('Country API failed');
+                return response.json();
+              })
+              .then(function (geo) {
+                var displayNames = typeof Intl !== 'undefined' && Intl.DisplayNames
+                  ? new Intl.DisplayNames(['en'], { type: 'region' })
+                  : null;
+                var countryCode = geo.country;
+
+                return {
+                  code: countryCode,
+                  name: displayNames ? displayNames.of(countryCode) : countryCode
+                };
+              });
+          });
+      }
+
+      getVisitorCountry()
+        .then(function (response) {
+          var countryCode = response.code || 'XX';
+          var countryName = response.name || countryCode;
+
+          setText(visitorCountry, countryName);
+
+          return getCount('country-' + countryCode.toLowerCase()).then(function (count) {
+            setText(countryVisits, count.toLocaleString('en-US'));
+          });
+        })
+        .catch(function () {
+          setText(visitorCountry, 'N/A');
+          setText(countryVisits, 'N/A');
+        });
+    }());
+  </script>
 </body>
 </html>
