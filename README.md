@@ -36,7 +36,7 @@ Full-stack web architect: product development, technical SEO, automation, infras
 ### Maria C. — Content Manager
 Client communication, SEO execution, audits, content planning, and coordination between marketing and development.
 
-- Email: [Maria@bazter.pro](mailto:Maria@bazter.pro)
+- Email: [Maria@bazter.pro](mailto:Mariia@bazter.pro)
 - Telegram: [@Mariiamyro](https://t.me/Mariiamyro)
 
 **Meet the full team:** [bazter.pro/en/team](https://bazter.pro/en/team/)
