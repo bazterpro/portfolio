@@ -1,0 +1,44 @@
+name: Request central build
+
+on:
+  push:
+    branches: ['**']
+
+permissions:
+  checks: write
+
+jobs:
+  request:
+    if: ${{ !github.event.deleted && github.repository_owner == 'bazterpro' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Sign build request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SIGNING_KEY: ${{ secrets.CENTRAL_BUILD_SIGNING_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' | gh api --silent --method POST "/repos/$GITHUB_REPOSITORY/check-runs" --input -
+          import hashlib
+          import hmac
+          import json
+          import os
+
+          repo = os.environ['GITHUB_REPOSITORY']
+          sha = os.environ['GITHUB_SHA']
+          run_id = os.environ['GITHUB_RUN_ID']
+          key = os.environ['SIGNING_KEY']
+          if not key:
+              raise SystemExit('CENTRAL_BUILD_SIGNING_KEY is missing')
+          message = f'{repo}\n{sha}\n{run_id}'.encode()
+          proof = hmac.new(key.encode(), message, hashlib.sha256).hexdigest()
+          print(json.dumps({
+              'name': 'central-ci/dispatch',
+              'head_sha': sha,
+              'external_id': f'{run_id}:{proof}',
+              'status': 'completed',
+              'conclusion': 'success',
+          }))
+          PY
